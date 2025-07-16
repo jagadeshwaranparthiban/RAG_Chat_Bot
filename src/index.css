@@ -1,0 +1,5 @@
+@import 'tailwindcss';
+
+.btn-custom {
+    @apply bg-transparent hover:bg-white rounded-full p-2 cursor-pointer transition duration-200
+}

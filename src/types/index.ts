@@ -1,0 +1,17 @@
+export type Item = {
+  id: number;
+  name: string;
+  description: string;
+  price: string;
+  count:number;
+};
+
+export type ItemCardProps = {
+  item: Item;
+  handleItemIncrement: (id: number) => void;
+  handleItemDecrement: (id: number) => void;
+};
+
+export interface CartItem extends Item {
+  count:number;
+}
