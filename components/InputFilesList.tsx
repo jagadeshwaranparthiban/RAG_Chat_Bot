@@ -1,4 +1,4 @@
-const InputFilesList = ({ inputFiles, onRemoveFile }: { inputFiles: File[] | null, onRemoveFile:(file:File)=>void }) => {
+const InputFilesList = ({ inputFiles, onRemoveFile, isSearchButtonClicked }: { inputFiles: File[] | null, onRemoveFile:(file:File)=>void, isSearchButtonClicked:boolean }) => {
     if(!inputFiles || inputFiles.length===0) return null;
 
     const removeFile = (file:File)=>{
@@ -8,7 +8,7 @@ const InputFilesList = ({ inputFiles, onRemoveFile }: { inputFiles: File[] | nul
     
     return (
         <div className="">
-            <ul className="flex flex-row space-x-3">
+            <ul className={`max-w-4xl flex flex-row space-x-3 transition duration-200 overflow-x-hidden ${isSearchButtonClicked ? 'hidden' : ''}`}>
                 {inputFiles.map((file:File) => (
                     <li key={inputFiles.indexOf(file)} className="px-2 py-1 flex flex-row justify-between rounded-full bg-blue-200 text-blue-600">
                         <p>{file.name}</p>

@@ -15,3 +15,13 @@ export type ItemCardProps = {
 export interface CartItem extends Item {
   count:number;
 }
+
+export interface prompt {
+  prompt: string
+}
+
+export type chatInfo = {
+  id: number;
+  sender: string;
+  message: string;
+}

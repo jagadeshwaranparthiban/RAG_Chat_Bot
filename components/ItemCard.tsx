@@ -1,4 +1,4 @@
-import type { Item,ItemCardProps } from '../src/types/index.ts'
+import type { Item,ItemCardProps } from '../types/index.ts'
 
 const  ItemCard = ({item, handleItemIncrement, handleItemDecrement}:ItemCardProps) => {
   return (

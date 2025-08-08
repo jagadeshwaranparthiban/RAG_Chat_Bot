@@ -3,3 +3,11 @@
 .btn-custom {
     @apply bg-transparent hover:bg-white rounded-full p-2 cursor-pointer transition duration-200
 }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;     /* Firefox */
+  }
