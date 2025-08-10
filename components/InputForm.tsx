@@ -69,15 +69,26 @@ const InputForm = ({ isSideBarOpen} : {isSideBarOpen:boolean}) => {
             setIsPromptValid(true);
             setIsSearchButtonClicked(true);
             setIsLoading(true)
-            const req:prompt = { prompt:requestPrompt.trim() } 
-            const res = await axios.post<ChatResponse>("http://localhost:8081/api/chat/ask", req);
+            console.log(files)
+
+            const formData = new FormData();
+            formData.append("prompt", requestPrompt.trim());
+            files?.forEach(file => formData.append("files", file));
+             
+            const res = await axios.post<ChatResponse>("http://localhost:8081/api/chat/ask", 
+                formData, {
+                    headers: {
+                        "Content-Type": "multipart/form-data"
+                    }
+                }
+            );
             const text = res.data?.candidates?.[0]?.content?.parts?.[0]?.text;
             if (text) {
                 console.log(text);
                 setResponse(text);
                 setChat(prevChat => {
                     return [...prevChat, 
-                        {id:prevChat.length+1, sender:"user", message:requestPrompt},
+                        {id:prevChat.length+1, sender:"user", files:files, message:requestPrompt},
                         {id:prevChat.length+1, sender:"server", message:text}
                     ]
                 })
@@ -86,6 +97,7 @@ const InputForm = ({ isSideBarOpen} : {isSideBarOpen:boolean}) => {
             }
             setIsLoading(false);
             setRequestPrompt("");
+            setFiles([]);
         }catch(error){
             console.error(error);
             setError(error);
@@ -95,12 +107,21 @@ const InputForm = ({ isSideBarOpen} : {isSideBarOpen:boolean}) => {
     return (
         <div className={`flex flex-col gap-8 mt-30 items-center ${isSideBarOpen ? 'transition duration-300 translate-x-30' : 'transition duration-300'}`}>
             {chat.length!==0 &&
-                <div className="w-full max-w-4xl max-h-[70vh] overflow-y-auto mb-40">
+                <div className="w-full max-w-6xl max-h-[70vh] overflow-y-auto mb-40">
                     <ul className="flex flex-col gap-2">
                         {chat.map(msg => (
                             <li key={msg.id} className={`px-4 py-2 rounded-2xl ${msg.sender==='user' ? 'self-end bg-blue-300 text-blue-600' : 'self-start text-white w-full max-w-2xl overflow-hidden'}`}>
                                 <h6 className="font-medium">{msg.message}</h6>
-                            </li>
+                                {msg.files && msg.files.length > 0 && (
+                                    <div className="mt-2 flex flex-wrap gap-2">
+                                        {msg.files.map((file,index)=>(
+                                            <div key={index} className="px-3 py-1 bg-white/40 flex items-center rounded-lg">
+                                                <span className="max-w-[100px] text-sm font-medium truncate">{file.name}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </li>  
                         ))}
                     </ul>
                 </div>
@@ -120,6 +141,11 @@ const InputForm = ({ isSideBarOpen} : {isSideBarOpen:boolean}) => {
                             placeholder="enter your prompt here" 
                             value={requestPrompt} 
                             onChange={(e)=>setRequestPrompt(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    handleSearch(e);
+                                }
+                            }}
                         ></input>
                     </div>
                     <button title="search" className="group btn-custom" onClick={handleSearch}>
@@ -127,7 +153,12 @@ const InputForm = ({ isSideBarOpen} : {isSideBarOpen:boolean}) => {
                     </button>
                 </div>
             </div>
-            <input type="file" ref={fileNameRef} onChange={handleFileChange} className="hidden"></input>
+            <input 
+                type="file" 
+                ref={fileNameRef} 
+                onChange={handleFileChange} 
+                className="hidden"                             
+            ></input>
             {files!==null && <InputFilesList inputFiles={files} onRemoveFile={handleFileRemoval} isSearchButtonClicked={isSearchButtonClicked}/>}
             {error && 
                 <div className="p-4 bg-red-600 text-white w-full max-w-xl overflow-hidden flex justify-center rounded-full">

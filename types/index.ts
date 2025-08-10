@@ -18,10 +18,12 @@ export interface CartItem extends Item {
 
 export interface prompt {
   prompt: string
+  files?: File[] | null
 }
 
 export type chatInfo = {
   id: number;
   sender: string;
-  message: string;
+  files?: File[] | null;
+  message: string | null;
 }
