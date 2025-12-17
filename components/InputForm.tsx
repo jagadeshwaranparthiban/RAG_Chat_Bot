@@ -1,4 +1,4 @@
-import { useState, useRef } from "react"
+import { useState, useRef, type KeyboardEvent, type MouseEvent } from "react"
 import InputFilesList from "./InputFilesList";
 import SearchIcon from "../Icons/SearchIcon";
 import FileIcon from "../Icons/FileIcon";
@@ -9,19 +9,23 @@ import Loading from "./Loading.tsx";
 
 
 interface ChatResponse {
-  candidates: {
-    content: {
-      parts: {
-        text: string;
-      }[];
-      role: string;
-    };
-    finishReason: string;
-    avgLogprobs: number;
-  }[];
+    llm_answer?: string;
+    results: {
+        heading: string;
+        gist: string | null;
+        main_content: string;
+        sub_sections: {
+            sub_heading: string;
+            content: string;
+        }[];
+    }[];
+    total_results: number;
+    total_chunks: number;
+    total_documents: number;
 }
 
 const InputForm = ({ isSideBarOpen} : {isSideBarOpen:boolean}) => {
+    const API_URL = (import.meta as any).env.VITE_API_BASE || "http://localhost:8000";
     const [files, setFiles] = useState<File[] | null>(null);
     const fileNameRef = useRef<HTMLInputElement | null>(null);
     const [isSearchButtonClicked, setIsSearchButtonClicked] = useState<boolean>(false);
@@ -29,6 +33,7 @@ const InputForm = ({ isSideBarOpen} : {isSideBarOpen:boolean}) => {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<any>("");
     const [response, setResponse] = useState<string>("");
+    const [llmResponse, setLlmResponse] = useState<string>("");
     const [isPromptValid, setIsPromptValid] = useState<boolean>(false);
     const [chat, setChat] = useState<chatInfo[]>([])
 
@@ -59,7 +64,7 @@ const InputForm = ({ isSideBarOpen} : {isSideBarOpen:boolean}) => {
         setFiles(prev => prev?.filter(f => f.name !== file.name) || [])
     }
 
-    const handleSearch = async(e)=> {
+    const handleSearch = async(e: KeyboardEvent<HTMLInputElement> | MouseEvent<HTMLButtonElement> | any)=> {
         e.preventDefault();
         if(requestPrompt.trim()===""){
             alert("Please enter a valid prompt");
@@ -72,28 +77,26 @@ const InputForm = ({ isSideBarOpen} : {isSideBarOpen:boolean}) => {
             console.log(files)
 
             const formData = new FormData();
-            formData.append("prompt", requestPrompt.trim());
+            formData.append("query", requestPrompt.trim());
             files?.forEach(file => formData.append("files", file));
              
-            const res = await axios.post<ChatResponse>("http://localhost:8081/api/chat/ask", 
-                formData, {
+            const res = await axios.post<ChatResponse>(`${API_URL}/ask`, 
+                formData, { 
                     headers: {
                         "Content-Type": "multipart/form-data"
                     }
                 }
             );
-            const text = res.data?.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (text) {
-                console.log(text);
-                setResponse(text);
+            if (res.data?.llm_answer) {
+                setLlmResponse(res.data.llm_answer);
                 setChat(prevChat => {
                     return [...prevChat, 
                         {id:prevChat.length+1, sender:"user", files:files, message:requestPrompt},
-                        {id:prevChat.length+1, sender:"server", message:text}
+                        {id:prevChat.length+2, sender:"server", message:res.data.llm_answer}
                     ]
                 })
             } else {
-                setError("No valid response text found.");
+                setError("No LLM answer found.");
             }
             setIsLoading(false);
             setRequestPrompt("");
@@ -106,25 +109,8 @@ const InputForm = ({ isSideBarOpen} : {isSideBarOpen:boolean}) => {
     
     return (
         <div className={`flex flex-col gap-8 mt-30 items-center ${isSideBarOpen ? 'transition duration-300 translate-x-30' : 'transition duration-300'}`}>
-            {chat.length!==0 &&
-                <div className="w-full max-w-6xl max-h-[70vh] overflow-y-auto mb-40">
-                    <ul className="flex flex-col gap-2">
-                        {chat.map(msg => (
-                            <li key={msg.id} className={`px-4 py-2 rounded-2xl ${msg.sender==='user' ? 'self-end bg-blue-300 text-blue-600' : 'self-start text-white w-full max-w-2xl overflow-hidden'}`}>
-                                <h6 className="font-medium">{msg.message}</h6>
-                                {msg.files && msg.files.length > 0 && (
-                                    <div className="mt-2 flex flex-wrap gap-2">
-                                        {msg.files.map((file,index)=>(
-                                            <div key={index} className="px-3 py-1 bg-white/40 flex items-center rounded-lg">
-                                                <span className="max-w-[100px] text-sm font-medium truncate">{file.name}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </li>  
-                        ))}
-                    </ul>
-                </div>
+            {llmResponse &&
+                <Response text={llmResponse} />
             }
             <div className={`flex justify-center ${isSearchButtonClicked ? 'hidden' : ''}`}>
                 <h1 className="text-4xl text-center font-bold text-white font-serif">How can i help you today?</h1>
